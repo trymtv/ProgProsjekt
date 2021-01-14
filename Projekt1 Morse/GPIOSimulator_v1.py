@@ -8,7 +8,8 @@ PIN_RED_LED_0 = 1
 PIN_RED_LED_1 = 2
 PIN_RED_LED_2 = 3
 PIN_BLUE_LED = 4
-valid_pins = {PIN_BTN, PIN_RED_LED_0, PIN_RED_LED_1, PIN_RED_LED_2, PIN_BLUE_LED}
+valid_pins = {PIN_BTN, PIN_RED_LED_0,
+              PIN_RED_LED_1, PIN_RED_LED_2, PIN_BLUE_LED}
 
 NO_SIGNAL = -1
 NO_SETUP = -1
@@ -38,7 +39,8 @@ class GPIOSimulator:
     def setup(self, pin, mode, state=0):
         """ setup the initial mode and state of a specific pin """
         if not (pin in valid_pins):
-            show_error_and_exit("This pin is out of range! Please use valid pins!")
+            show_error_and_exit(
+                "This pin is out of range! Please use valid pins!")
         else:
             if not (mode in {self.IN, self.OUT}):
                 print('invalid mode')
@@ -70,7 +72,8 @@ class GPIOSimulator:
             show_error_and_exit("Only PIN_BTN is allowed!")
         else:
             if random.random() < RANDOMNESS:
-                self.pin_states[PIN_BTN] = random.choice([self.PUD_DOWN, self.PUD_UP])
+                self.pin_states[PIN_BTN] = random.choice(
+                    [self.PUD_DOWN, self.PUD_UP])
             else:
                 if keyboard.is_pressed('space'):
                     self.pin_states[PIN_BTN] = self.PUD_DOWN
@@ -91,7 +94,8 @@ class GPIOSimulator:
                     PIN_BLUE_LED: "The blue LED"}
 
         if not (pin in led_dict.keys()):
-            show_error_and_exit("Output pin is out of range! Please use valid LED pins!")
+            show_error_and_exit(
+                "Output pin is out of range! Please use valid LED pins!")
         else:
             if not (state in {self.LOW, self.HIGH}):
                 show_error_and_exit('invalid LED state!')
@@ -101,5 +105,6 @@ class GPIOSimulator:
                     verb = 'becomes'
                 else:
                     verb = 'is still'
-                print("%s %s %s." % (led_dict[pin], verb, state_str_dict[state]))
+                print("%s %s %s." %
+                      (led_dict[pin], verb, state_str_dict[state]))
                 self.pin_states[pin] = state

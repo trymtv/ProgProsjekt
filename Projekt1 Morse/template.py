@@ -23,11 +23,19 @@ class MorseDecoder():
         self.polling_delay = polling_delay
         self.signal_width = signal_width
 
+    # Resets all buffer variables
     def reset(self):
         self.word = self.symbol_code = ""
 
+    # Reads and returns a signal from the morse stream
     def read_one_signal(self):
         return GPIO.input(PIN_BTN)
+
+    """
+    Loop for generating and checking signal.
+    Solves signal instability by checking for a stable
+    signal before determening a signal change.
+    """
 
     def decoding_loop(self):
         current_signal = 0
@@ -46,6 +54,11 @@ class MorseDecoder():
                     next_count = 0
             time.sleep(self.polling_delay)
 
+    """
+    Decode the given signal by type and length,
+    then call subrutines.
+    """
+
     def decode_signal(self, signal, length):
         if signal == 1:
             if length < self.signal_width:
@@ -60,9 +73,11 @@ class MorseDecoder():
             else:
                 self.handle_word_end()
 
+    # Adds the deterimed signal to the current morse code.
     def update_current_symbol(self, signal):
         self.symbol_code += signal
 
+    # Adds the current morse code to the current word.
     def handle_symbol_end(self):
         if self.symbol_code != "" and self.symbol_code in MORSE_CODE:
             self.word += MORSE_CODE[self.symbol_code]
@@ -70,6 +85,7 @@ class MorseDecoder():
             print("not symbol")
         self.symbol_code = ""
 
+    # Adds the last symbol to the word and print it, then reset.
     def handle_word_end(self):
         self.handle_symbol_end()
         print(self.word)

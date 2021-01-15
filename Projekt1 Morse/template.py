@@ -13,15 +13,10 @@ MORSE_CODE = {'.-': 'a', '-...': 'b', '-.-.': 'c', '-..': 'd', '.': 'e', '..-.':
               '---..': '8', '----.': '9', '-----': '0'}
 
 
-class SignalFilter():
-    def __init__(self):
-        pass
-
-
 class MorseDecoder():
     """ Morse code class """
 
-    def __init__(self, signal_width=15, polling_delay=0.00005):
+    def __init__(self, signal_width=15, polling_delay=0.0001):
         GPIO.setup(PIN_BTN, GPIO.IN, GPIO.PUD_DOWN)
         self.word = ""
         self.symbol_code = ""
@@ -44,29 +39,41 @@ class MorseDecoder():
                 next_count = 0
             else:
                 next_count += 1
-                if next_count >= 5:
+                if next_count >= 3:
+                    self.decode_signal(current_signal, signal_count)
                     current_signal = not current_signal
                     signal_count = next_count
                     next_count = 0
-            time.sleep(0.0001)
-            print(current_signal)
+            time.sleep(self.polling_delay)
 
-    def process_signal(self, signal):
-        """ handle the signals using corresponding functions """
+    def decode_signal(self, signal, length):
+        if signal == 1:
+            if length < self.signal_width:
+                self.update_current_symbol(".")
+            else:
+                self.update_current_symbol("-")
+        else:
+            if length < self.signal_width:
+                pass
+            elif length < self.signal_width * 4:
+                self.handle_symbol_end()
+            else:
+                self.handle_word_end()
 
     def update_current_symbol(self, signal):
         self.symbol_code += signal
 
     def handle_symbol_end(self):
-        self.word += MORSE_CODE[self.symbol_code]
+        if self.symbol_code != "" and self.symbol_code in MORSE_CODE:
+            self.word += MORSE_CODE[self.symbol_code]
+        else:
+            print("not symbol")
         self.symbol_code = ""
 
     def handle_word_end(self):
-        print(self.word, end="")
+        self.handle_symbol_end()
+        print(self.word)
         self.reset()
-
-    def handle_reset(self):
-        """ process when a reset signal received """
 
 
 def main():

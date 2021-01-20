@@ -23,26 +23,45 @@ class MorseDecoder():
         self.polling_delay = polling_delay
         self.signal_width = signal_width
 
-    # Resets all buffer variables
     def reset(self):
+        """ Resets all buffer variables"""
         self.word = self.symbol_code = ""
 
-    # Reads and returns a signal from the morse stream
     def read_one_signal(self):
+        """Reads and returns a signal from the morse stream"""
         return GPIO.input(PIN_BTN)
 
-    """
-    Loop for generating and checking signal.
-    Solves signal instability by checking for a stable
-    signal before determening a signal change.
-    """
+    def print_led_status(self, symbol):
+        """Prints the correct led status"""
+        if symbol == "-":
+            GPIO.output(PIN_BLUE_LED, GPIO.LOW)
+            GPIO.output(PIN_RED_LED_0, GPIO.HIGH)
+            GPIO.output(PIN_RED_LED_1, GPIO.HIGH)
+            GPIO.output(PIN_RED_LED_2, GPIO.HIGH)
+        else:
+            GPIO.output(PIN_RED_LED_0, GPIO.LOW)
+            GPIO.output(PIN_RED_LED_1, GPIO.LOW)
+            GPIO.output(PIN_RED_LED_2, GPIO.LOW)
+            GPIO.output(PIN_BLUE_LED, GPIO.HIGH)
+
+    def reset_leds(self):
+        """Sets all led to low"""
+        GPIO.output(PIN_BLUE_LED, GPIO.LOW)
+        GPIO.output(PIN_RED_LED_0, GPIO.LOW)
+        GPIO.output(PIN_RED_LED_1, GPIO.LOW)
+        GPIO.output(PIN_RED_LED_2, GPIO.LOW)
 
     def decoding_loop(self):
+        """
+        Loop for generating and checking signal.
+        Solves signal instability by checking for a stable
+        signal before determening a signal change.
+        """
         current_signal = 0
         signal_count = 0
         next_count = 0
         while True:
-            if GPIO.input(PIN_BTN) == current_signal:
+            if self.read_one_signal() == current_signal:
                 signal_count += 1
                 next_count = 0
             else:
@@ -54,12 +73,11 @@ class MorseDecoder():
                     next_count = 0
             time.sleep(self.polling_delay)
 
-    """
-    Decode the given signal by type and length,
-    then call subrutines.
-    """
-
     def decode_signal(self, signal, length):
+        """
+        Decode the given signal by type and length,
+        then call subrutines.
+        """
         if signal == 1:
             if length < self.signal_width:
                 self.update_current_symbol(".")
@@ -73,20 +91,22 @@ class MorseDecoder():
             else:
                 self.handle_word_end()
 
-    # Adds the deterimed signal to the current morse code.
     def update_current_symbol(self, signal):
+        """Adds the deterimed signal to the current morse code."""
+        self.print_led_status(signal)
         self.symbol_code += signal
 
-    # Adds the current morse code to the current word.
     def handle_symbol_end(self):
+        """Adds the current morse code to the current word."""
+        self.reset_leds()
         if self.symbol_code != "" and self.symbol_code in MORSE_CODE:
             self.word += MORSE_CODE[self.symbol_code]
         else:
             print("not symbol")
         self.symbol_code = ""
 
-    # Adds the last symbol to the word and print it, then reset.
     def handle_word_end(self):
+        """Adds the last symbol to the word and print it, then reset."""
         self.handle_symbol_end()
         print(self.word)
         self.reset()

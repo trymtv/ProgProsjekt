@@ -7,10 +7,10 @@ class Cipher():
     def encode(self, message, key):
         pass
 
-    def decode(self):
+    def decode(self, message, key):
         pass
 
-    def verify(self):
+    def verify(self, message, key):
         pass
 
     def shift_message_down(self, message):
@@ -26,7 +26,18 @@ class Cipher():
 class CesarCipher(Cipher):
 
     def encode(self, message, key):
-        pass
+        shifted = self.shift_message_down(message)
+        coded = [(elem + key) % self.length for elem in shifted]
+        return self.shift_message_up(coded)
+
+    def decode(self, message, key):
+        shifted = self.shift_message_down(message)
+        decoded = [(elem + self.length - key) % self.length for elem in shifted]
+        return self.shift_message_up(decoded)
+
+    def verify(self, message, key):
+        coded = self.encode(message, key)
+        return message == self.decode(coded, key)
 
 
 class Person():
@@ -45,7 +56,10 @@ class Person():
 
 def main():
     test = CesarCipher()
-    test.encode("aaaaaazzzazazaz       ~~~~", 10)
+    coded = test.encode("Johann e dumme!", 10)
+    print(coded)
+    print(test.decode(coded, 10))
+
 
 
 if __name__ == "__main__":

@@ -1,3 +1,6 @@
+import crypto_utils
+
+
 class Cipher():
     def __init__(self, start=32, end=126):
         self.start = start
@@ -39,6 +42,40 @@ class CesarCipher(Cipher):
         coded = self.encode(message, key)
         return message == self.decode(coded, key)
 
+    
+class MulCipher(Cipher):
+
+    def encode(self, message, key):
+        shifted = self.shift_message_down(message)
+        coded = [(elem * key) % self.length for elem in shifted]
+        return self.shift_message_up(coded)
+    
+    def decode(self, message, key):
+        shifted = self.shift_message_down(message)
+        decoded = [(elem * key) % self.length for elem in shifted]
+        return self.shift_message_up(decoded)
+
+    def verify(self, message, key):
+        coded = self.encode(message, key)
+        return message == self.decode(coded, key)
+
+
+class AffineCipher(Cipher):
+
+    def encode(self, message, key):
+        shifted = self.shift_message_down(message)
+        coded = [(elem * key) % self.length for elem in shifted]
+        return self.shift_message_up(coded)
+    
+    def decode(self, message, key):
+        shifted = self.shift_message_down(message)
+        decoded = [(elem * key) % self.length for elem in shifted]
+        return self.shift_message_up(decoded)
+
+    def verify(self, message, key):
+        coded = self.encode(message, key)
+        return message == self.decode(coded, key)
+
 
 class Person():
     def __init__(self, key=0):
@@ -55,10 +92,10 @@ class Person():
 
 
 def main():
-    test = CesarCipher()
-    coded = test.encode("Johann e dumme!", 10)
+    test = MulCipher()
+    coded = test.encode("Johann e dumme!", 7)
     print(coded)
-    print(test.decode(coded, 10))
+    print(test.decode(coded, crypto_utils.modular_inverse(7, 95)))
 
 
 

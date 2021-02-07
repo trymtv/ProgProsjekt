@@ -62,15 +62,19 @@ class MulCipher(Cipher):
 
 class AffineCipher(Cipher):
 
+    #TODO fikse hvordan nøklene skal oppgis og om det skal kreves at inversen
+    #er regnet på forhånd
+
+    def __init__(self, start=32, end=126):
+        super().__init__(start, end)
+        self.cesar = CesarCipher(start, end)
+        self.mul = MulCipher(start, end)
+
     def encode(self, message, key):
-        shifted = self.shift_message_down(message)
-        coded = [(elem * key) % self.length for elem in shifted]
-        return self.shift_message_up(coded)
+        return self.mul.encode(self.cesar.encode(message, key), key)
     
     def decode(self, message, key):
-        shifted = self.shift_message_down(message)
-        decoded = [(elem * key) % self.length for elem in shifted]
-        return self.shift_message_up(decoded)
+        return self.cesar.decode(self.mul.decode(message, key), key)
 
     def verify(self, message, key):
         coded = self.encode(message, key)

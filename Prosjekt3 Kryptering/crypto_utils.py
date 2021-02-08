@@ -20,7 +20,8 @@ def extended_gcd(_a, _b):
     previous_remainder, remainder = _a, _b
     current_x, previous_x, current_y, previous_y = 0, 1, 1, 0
     while remainder > 0:
-        previous_remainder, (quotient, remainder) = remainder, divmod(previous_remainder, remainder)
+        previous_remainder, (quotient, remainder) = remainder, divmod(
+            previous_remainder, remainder)
         current_x, previous_x = previous_x - quotient * current_x, current_x
         current_y, previous_y = previous_y - quotient * current_y, current_y
     # The loop terminates with remainder == 0, x == b and y == -a. This is not what we want, and is because we have
@@ -38,8 +39,9 @@ def modular_inverse(a, m):
 
     gcd_value, x, y = extended_gcd(a, m)
     if gcd_value != 1:
-        print('No inverse. gcd (%d, %d) is %d. Decoding is not unique. Choose another key than %d'
-              % (a, m, math.gcd(a, m), a))
+        return False
+        """ print('No inverse. gcd (%d, %d) is %d. Decoding is not unique. Choose another key than %d'
+              % (a, m, math.gcd(a, m), a)) """
     return x % m
 
 
@@ -254,4 +256,3 @@ def generate_random_prime(bits, prime_test=rabin_miller_is_prime):
                 p = get_random_t()
             else:
                 p += 2  # Add 2 since we are only interested in odd numbers
-

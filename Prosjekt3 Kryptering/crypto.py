@@ -1,3 +1,4 @@
+from random import randint
 import crypto_utils
 
 
@@ -13,7 +14,10 @@ class Cipher():
     def decode(self, message, key):
         pass
 
-    def verify(self, message, key):
+    def verify(self, message, key_pair):
+        pass
+
+    def generate_keys(self):
         pass
 
     def shift_message_down(self, message):
@@ -22,63 +26,124 @@ class Cipher():
     def shift_message_up(self, message):
         return "".join([chr(elem + self.start) for elem in message])
 
+    def shifted_coding(self, message, func):
+        shifted = self.shift_message_down(message)
+        coded = [func(elem) for elem in shifted]
+        return self.shift_message_up(coded)
+
     def __str__(self):
         return str(self.__class__.__name__) + f" start: {self.start}, end: {self.end}"
 
 
 class CesarCipher(Cipher):
 
+    def encode_decode(self, message, key):
+        return self.shifted_coding(message, lambda char: (char + key) % self.length)
+
     def encode(self, message, key):
-        shifted = self.shift_message_down(message)
-        coded = [(elem + key) % self.length for elem in shifted]
-        return self.shift_message_up(coded)
+        return self.encode_decode(message, key)
 
     def decode(self, message, key):
-        shifted = self.shift_message_down(message)
-        decoded = [(elem + self.length - key) % self.length for elem in shifted]
-        return self.shift_message_up(decoded)
+        return self.encode_decode(message, key)
 
-    def verify(self, message, key):
-        coded = self.encode(message, key)
-        return message == self.decode(coded, key)
+    def generate_keys(self):
+        first_key = randint(1, self.length)
+        return (first_key, self.length - first_key)
 
-    
+    def verify(self, message, key_pair):
+        coded = self.encode(message, key_pair[0])
+        return message == self.decode(coded, key_pair[1])
+
+
 class MulCipher(Cipher):
 
-    def encode(self, message, key):
-        shifted = self.shift_message_down(message)
-        coded = [(elem * key) % self.length for elem in shifted]
-        return self.shift_message_up(coded)
-    
-    def decode(self, message, key):
-        shifted = self.shift_message_down(message)
-        decoded = [(elem * key) % self.length for elem in shifted]
-        return self.shift_message_up(decoded)
+    def encode_decode(self, message, key):
+        return self.shifted_coding(message, lambda char: (char * key) % self.length)
 
-    def verify(self, message, key):
-        coded = self.encode(message, key)
-        return message == self.decode(coded, key)
+    def encode(self, message, key):
+        return self.encode_decode(message, key)
+
+    def decode(self, message, key):
+        return self.encode_decode(message, key)
+
+    def generate_keys(self):
+        key1 = randint(1, self.length)
+        while not (key2 := crypto_utils.modular_inverse(key1, self.length)):
+            key1 = randint(1, self.length)
+        return key1, key2
+
+    def verify(self, message, key_pair):
+        coded = self.encode(message, key_pair[0])
+        return message == self.decode(coded, key_pair[1])
 
 
 class AffineCipher(Cipher):
-
-    #TODO fikse hvordan nøklene skal oppgis og om det skal kreves at inversen
-    #er regnet på forhånd
 
     def __init__(self, start=32, end=126):
         super().__init__(start, end)
         self.cesar = CesarCipher(start, end)
         self.mul = MulCipher(start, end)
 
-    def encode(self, message, key):
-        return self.mul.encode(self.cesar.encode(message, key), key)
-    
-    def decode(self, message, key):
-        return self.cesar.decode(self.mul.decode(message, key), key)
+    def encode(self, message, key_pair):
+        return self.mul.encode(self.cesar.encode(message, key_pair[1]), key_pair[0])
 
-    def verify(self, message, key):
-        coded = self.encode(message, key)
-        return message == self.decode(coded, key)
+    def decode(self, message, key_pair):
+        return self.cesar.decode(self.mul.decode(message, key_pair[0]), key_pair[1])
+
+    def generate_keys(self):
+        cesar_keys = self.cesar.generate_keys()
+        mul_keys = self.mul.generate_keys()
+        return ((mul_keys[0], cesar_keys[0]), (mul_keys[1], cesar_keys[1]))
+
+    def verify(self, message, key_pair1, key_pair2):
+        coded = self.encode(message, key_pair1)
+        return message == self.decode(coded, key_pair2)
+
+
+class UnbreakableCipher(Cipher):
+
+    def encode_decode(self, message, key):
+        shifted_message = self.shift_message_down(message)
+        long_key = key * (len(message) // len(key) + 1)
+        shifted_long_key = self.shift_message_down(long_key)
+        for i in enumerate(shifted_message):
+            shifted_message[i] = (shifted_message[i] +
+                                  shifted_long_key[i]) % self.length
+        return "".join(self.shift_message_up(shifted_message))
+
+    def encode(self, message, key):
+        return self.encode_decode(message, key)
+
+    def decode(self, message, key):
+        return self.encode_decode(message, key)
+
+    def generate_keys(self, first_key):
+        shifted_fist_key = self.shift_message_down(first_key)
+        shifted_second_key = [self.length - char for char in shifted_fist_key]
+        return "".join(self.shift_message_up(shifted_second_key))
+
+    def verify(self, message, key_pair):
+        coded = self.encode(message, key_pair[0])
+        return message == self.decode(coded, key_pair[1])
+
+
+class RSA(Cipher):
+
+    def encode_decode(self, message, key_pair):
+        return [pow(number, key_pair[1], key_pair[0]) for number in message]
+
+    def encode(self, message, key_pair):
+        return self.encode_decode(crypto_utils.blocks_from_text(message, 1), key_pair)
+
+    def decode(self, message, key_pair):
+        return crypto_utils.text_from_blocks(self.encode_decode(message, key_pair), 8)
+
+    def generate_keys(self):
+        first_random_prime = crypto_utils.generate_random_prime(8)
+        while (second_random_prime := crypto_utils.generate_random_prime(8)) == first_random_prime:
+            pass
+        prime_product = first_random_prime * second_random_prime
+        phi = (first_random_prime - 1) * (second_random_prime - 1)
 
 
 class Person():
@@ -96,11 +161,9 @@ class Person():
 
 
 def main():
-    test = MulCipher()
-    coded = test.encode("Johann e dumme!", 7)
-    print(coded)
-    print(test.decode(coded, crypto_utils.modular_inverse(7, 95)))
-
+    test = CesarCipher()
+    keys = test.generate_keys()
+    print(test.verify("testting faen", keys))
 
 
 if __name__ == "__main__":

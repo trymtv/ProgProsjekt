@@ -51,8 +51,7 @@ class CesarCipher(Cipher):
         return (first_key, self.length - first_key)
 
     def verify(self, message, key_pair):
-        coded = self.encode(message, key_pair[0])
-        return message == self.decode(coded, key_pair[1])
+        return message == self.decode(self.encode(message, key_pair[0]), key_pair[1])
 
 
 class MulCipher(Cipher):
@@ -73,8 +72,7 @@ class MulCipher(Cipher):
         return key1, key2
 
     def verify(self, message, key_pair):
-        coded = self.encode(message, key_pair[0])
-        return message == self.decode(coded, key_pair[1])
+        return message == self.decode(self.encode(message, key_pair[0]), key_pair[1])
 
 
 class AffineCipher(Cipher):
@@ -96,8 +94,7 @@ class AffineCipher(Cipher):
         return ((mul_keys[0], cesar_keys[0]), (mul_keys[1], cesar_keys[1]))
 
     def verify(self, message, key_pair1, key_pair2):
-        coded = self.encode(message, key_pair1)
-        return message == self.decode(coded, key_pair2)
+        return message == self.decode(self.encode(message, key_pair1), key_pair2)
 
 
 class UnbreakableCipher(Cipher):
@@ -123,8 +120,7 @@ class UnbreakableCipher(Cipher):
         return "".join(self.shift_message_up(shifted_second_key))
 
     def verify(self, message, key_pair):
-        coded = self.encode(message, key_pair[0])
-        return message == self.decode(coded, key_pair[1])
+        return message == self.decode(self.encode(message, key_pair[0]), key_pair[1])
 
 
 class RSA(Cipher):
@@ -142,8 +138,17 @@ class RSA(Cipher):
         first_random_prime = crypto_utils.generate_random_prime(8)
         while (second_random_prime := crypto_utils.generate_random_prime(8)) == first_random_prime:
             pass
-        prime_product = first_random_prime * second_random_prime
+        modulus = first_random_prime * second_random_prime
         phi = (first_random_prime - 1) * (second_random_prime - 1)
+
+        public_key = randint(3, phi - 1)
+        while not (private_key := crypto_utils.modular_inverse(public_key, phi)):
+            public_key = randint(3, phi - 1)
+
+        return (modulus, public_key), (modulus, private_key)
+
+    def verify(self, message, key_pair1, key_pair2):
+        return message == self.decode(self.encode(message, key_pair1), key_pair2)
 
 
 class Person():
@@ -160,10 +165,17 @@ class Person():
         pass
 
 
+class Sender(Person):
+    def __init__(self, cipher, key=0):
+        super().__init__(key)
+        self.cipher = cipher
+
+
 def main():
-    test = CesarCipher()
+    test = RSA()
     keys = test.generate_keys()
-    print(test.verify("testting faen", keys))
+    coded = test.encode("testting faen", keys[0])
+    print(test.decode(coded, keys[1]))
 
 
 if __name__ == "__main__":
